@@ -36,23 +36,23 @@ class bio_cca:
 
         if Wx0 is None:
             Wx = np.random.randn(z_dim,x_dim)
-            for i in range(s_dim):
+            for i in range(z_dim):
                 Wx[i,:] = Wx[i,:]/np.linalg.norm(Wx[i,:])
             
         if Wy0 is None:
             Wy = np.random.randn(z_dim,y_dim)
-            for i in range(s_dim):
+            for i in range(z_dim):
                 Wy[i,:] = Wy[i,:]/np.linalg.norm(Wy[i,:])
 
         # optimal hyperparameters for test datasets
             
         if dataset=='synthetic':
             if eta0 is None:
-                eta0 = 0.1
+                eta0 = 0.001
             if decay is None:
-                decay = 0.01
+                decay = 0
             if tau is None:
-                tau = 0.8
+                tau = 0.1
         elif dataset=='mediamill':
             if eta0 is None:
                 eta0 = 0.001
@@ -75,13 +75,13 @@ class bio_cca:
         self.z_dim = z_dim
         self.x_dim = x_dim
         self.y_dim = y_dim
-        self.M = M
+        self.Minv = Minv
         self.Wx = Wx
         self.Wy = Wy
 
     def fit_next(self, x, y):
 
-        t, tau, Wx, Wy, Minv  = self.t, self.tau, self.x_bar, self.Wx, self.Wy, self.Minv
+        t, tau, Wx, Wy, Minv  = self.t, self.tau, self.Wx, self.Wy, self.Minv
         
         # project inputs
         
@@ -98,10 +98,10 @@ class bio_cca:
 
         Wx += 2*step*np.outer(z-a,x)
         Wy += 2*step*np.outer(z-b,y)
-        
+                
         Minv_z = Minv@z
         step_tau = step/tau
-        Minv -= (step_tau/(1-step_tau+step_tau*z.T@Minv_z))@np.outer(Minv_z,Minv_z)
+        Minv -= (step_tau/(1-step_tau+step_tau*z.T@Minv_z))*np.outer(Minv_z,Minv_z)
         Minv /= 1-step
         
         self.Wx = Wx
