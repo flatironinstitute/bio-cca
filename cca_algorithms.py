@@ -110,4 +110,7 @@ class bio_cca:
         
         self.t += 1
         
-        return z
+        Vx = Wx.T@Minv
+        Vy = Wy.T@Minv
+        
+        return Vx, Vy
