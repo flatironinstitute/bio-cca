@@ -93,48 +93,92 @@ def mediamill(s_dim, x_dim):
     
     np.save(f'datasets/image/sources.npy', S)
     np.save(f'datasets/image/mixtures.npy', X)
-
-def permutation_error(S, Y):
+    
+    
+def correlation_matrix(Cxx, Cyy, Cxy):
     """
     Parameters:
     ====================
-    S   -- The data matrix of sources
-    Y   -- The data matrix of recovered sources
+    Cxx, Cyy, Cxy -- Covariance matrices
     
     Output:
     ====================
-    err -- the (relative) Frobenius norm error
+    Rxy -- correlation matrix
     """
     
-    assert S.shape==Y.shape, "The shape of the sources S must equal the shape of the recovered sources Y"
+    sig_x, Ux = np.linalg.eig(Cxx)
+    sig_y, Uy = np.linalg.eig(Cyy)
 
-    s_dim = S.shape[0]
-    iters = S.shape[1]
-    
-    err = np.zeros(iters)
-    
-    # Determine the optimal permutation at the final time point.
-    # We solve the linear assignment problem using the linear_sum_assignment package
-    
-    # Calculate cost matrix:
-    
-    C = np.zeros((s_dim,s_dim))
-    
-    for i in range(s_dim):
-        for j in range(s_dim):
-            C[i,j] = ((S[i] - Y[j])**2).sum()
-    
-    # Find the optimal assignment for the cost matrix C
-    
-    row_ind, col_ind = linear_sum_assignment(C)
-        
-    for t in range(1,iters):
+    Rxy = Ux@np.diag(1./np.sqrt(sig_x))@Ux.T@Cxy@Uy@np.diag(1./np.sqrt(sig_y))@Uy.T
 
-        diff_t = (S[row_ind[:],t] - Y[col_ind[:],t])**2
-        error_t = diff_t.sum()/s_dim
-        err[t] = err[t-1] + (error_t - err[t-1])/t
+    return Rxy
+
+def max_objective(Rxy, z_dim):
+    """
+    Parameters:
+    ====================
+    Rxy     -- Correlation matrix
+    z_dim   -- Output dimension
     
+    Output:
+    ====================
+    max_obj -- Maximum of the CCA objective
+    """
+    
+    u, s, vh = np.linalg.svd(Rxy)
+    max_obj = sum(s[:z_dim])
+    
+    return max_obj
+
+
+def error(Vx, Vy, Cxx, Cyy, Cxy):
+    """
+    Parameters:
+    ====================
+    Vx, Vy        -- The data matrix of sources
+    Cxx, Cyy, Cxy -- Covariance matrices
+    
+    Output:
+    ====================
+    err           -- The (relative) Frobenius norm error
+    """
+    
+    z_dim = Vx.shape[1]
+    
+    sig, U = np.linalg.eig(Vx.T@Cxx@Vx + Vy.T@Cyy@Vy)
+    
+    norm_matrix = U@np.diag(1./np.sqrt(sig))@U.T
+    
+    Vx_normalized = Vx@norm_matrix
+    Vy_normalized = Vy@norm_matrix
+    
+    Rxy = correlation_matrix(Cxx, Cyy, Cxy)
+    
+    max_obj = max_objective(Rxy, z_dim)
+
+    err = (max_obj - np.trace(Vx_normalized.T@Cxy@Vy_normalized))/max_obj
+
     return err
+
+
+def constraint_error(Vx, Vy, Cxx, Cyy):
+    """
+    Parameters:
+    ====================
+    Vx, Vy    -- The data matrix of sources
+    Cxx, Cyy  -- Covariance matrices
+    
+    Output:
+    ====================
+    const_err -- The (relative) Frobenius norm constraint error
+    """
+    
+    z_dim = Vx.shape[1]
+
+    const_err = np.linalg.norm(Vx.T@Cxx@Vx+Vy.T@Cyy@Vy-np.eye(z_dim))**2/z_dim
+    
+    return const_err
+
 
 def add_fill_lines(axis, t, err, plot_kwargs=None, ci_kwargs=None):
     """
