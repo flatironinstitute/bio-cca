@@ -113,26 +113,7 @@ def correlation_matrix(Cxx, Cyy, Cxy):
 
     return Rxy
 
-
-def max_objective(Rxy, z_dim):
-    """
-    Parameters:
-    ====================
-    Rxy     -- Correlation matrix
-    z_dim   -- Output dimension
-    
-    Output:
-    ====================
-    max_obj -- Maximum of the CCA objective
-    """
-    
-    u, s, vh = np.linalg.svd(Rxy)
-    max_obj = sum(s[:z_dim])
-    
-    return max_obj
-
-
-def error(Vx, Vy, Cxx, Cyy, Cxy):
+def error(Vx, Vy, Cxx, Cyy, Cxy, max_obj):
     """
     Parameters:
     ====================
@@ -152,10 +133,6 @@ def error(Vx, Vy, Cxx, Cyy, Cxy):
     
     Vx_normalized = Vx@norm_matrix
     Vy_normalized = Vy@norm_matrix
-    
-    Rxy = correlation_matrix(Cxx, Cyy, Cxy)
-    
-    max_obj = max_objective(Rxy, z_dim)
 
     err = (max_obj - np.trace(Vx_normalized.T@Cxy@Vy_normalized))/max_obj
 
