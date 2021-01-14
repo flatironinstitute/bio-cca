@@ -4,6 +4,8 @@
 # References: D. Lipshutz, Y. Bahroun, S. Golkar, A.M. Sengupta and D.B. Chklovskii "A biologically plausible neural network for multi-channel Canonical Correlation Analysis" (2020)
 #             R. Arora, T.V. Marinov, P. Mianjy and N. Sbrero "Stochastic Approximation for Canonical Correlation Analysis" (2017)
 #             K. Bhattia, A. Pacchiano and N. Flammarion, P. Bartlett and M.I. Jordan "Gen-Oja: A Simple and Efficient Algorithm for Streaming Generalized Eigenvector Computation" (2018)
+#             C. Pehlevan, X. Zhao, A.M. Sengupta, D.B. Chklovskii "Neurons as Canonical Correlation Analyzers" (2020)
+#             S. Golkar, D. Lipshutz, Y. Bahroun, A.M. Sengupta and D.B. Chklovskii "A simple normative network approximates local non-Hebbian learning in the cortex" (2020)
 
 ##############################
 # Imports
@@ -50,7 +52,7 @@ class bio_cca:
             if eta0 is None:
                 eta0 = 0.001
             if decay is None:
-                decay = 0
+                decay = 0.0001
             if tau is None:
                 tau = 0.1
         elif dataset=='mediamill':
@@ -72,9 +74,9 @@ class bio_cca:
         self.eta0 = eta0
         self.decay = decay
         self.tau = tau
-        self.z_dim = z_dim
         self.x_dim = x_dim
         self.y_dim = y_dim
+        self.z_dim = z_dim
         self.Minv = Minv
         self.Wx = Wx
         self.Wy = Wy
@@ -101,8 +103,8 @@ class bio_cca:
                 
         Minv_z = Minv@z
         step_tau = step/tau
-        Minv -= (step_tau/(1-step_tau+step_tau*z.T@Minv_z))*np.outer(Minv_z,Minv_z)
-        Minv /= 1-step
+        Minv -= (step_tau/(1+z.T@Minv_z))*np.outer(Minv_z,Minv_z)
+        Minv /= 1-step_tau
         
         self.Wx = Wx
         self.Wy = Wy
@@ -142,3 +144,32 @@ class gen_oja:
     ========
     fit_next()
     """
+    
+class asymmetric:
+    """
+    Parameters:
+    ====================
+    z_dim         -- Dimension of output
+    x_dim, y_dim  -- Dimensions of inputs
+    Wx0, Wy0      -- Initial guesses for the forward weight matrices Wx and Wy, must be of size z_dim by x_dim and z_dim by y_dim
+    learning_rate -- Learning rate as a function of t
+    
+    Methods:
+    ========
+    fit_next()
+    """
+    
+class bio_rrr:
+    """
+    Parameters:
+    ====================
+    z_dim         -- Dimension of output
+    x_dim, y_dim  -- Dimensions of inputs
+    Wx0, Wy0      -- Initial guesses for the forward weight matrices Wx and Wy, must be of size z_dim by x_dim and z_dim by y_dim
+    learning_rate -- Learning rate as a function of t
+    
+    Methods:
+    ========
+    fit_next()
+    """
+    

@@ -113,6 +113,7 @@ def correlation_matrix(Cxx, Cyy, Cxy):
 
     return Rxy
 
+
 def max_objective(Rxy, z_dim):
     """
     Parameters:
