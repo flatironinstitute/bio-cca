@@ -53,28 +53,28 @@ class bio_cca:
         if dataset=='synthetic':
             if eta0 is None:
                 eta0 = 0.001
-            if decay is None:
-                decay = 0.0001
+            if eta_decay is None:
+                eta_decay = 0.0001
             if tau is None:
                 tau = 0.1
         elif dataset=='mediamill':
             if eta0 is None:
                 eta0 = 0.001
-            if decay is None:
-                decay = 0.0001
+            if eta_decay is None:
+                eta_decay = 0.0001
             if tau is None:
                 tau = .03
         else:
             if eta0 is None:
                 eta0 = 0.01
-            if decay is None:
-                decay = 0.001
+            if eta_decay is None:
+                eta_decay = 0.001
             if tau is None:
                 tau = 0.5
 
         self.t = 0
         self.eta0 = eta0
-        self.decay = decay
+        self.eta_decay = eta_decay
         self.tau = tau
         self.x_dim = x_dim
         self.y_dim = y_dim
@@ -99,7 +99,7 @@ class bio_cca:
 
         # synaptic updates
         
-        step = self.eta0/(1+self.decay*t)
+        step = self.eta0/(1+self.eta_decay*t)
 
         Wx += 2*step*np.outer(z-a,x)
         Wy += 2*step*np.outer(z-b,y)
@@ -203,7 +203,7 @@ class msg_cca:
     
     def fit_next(self, x, y):
         
-        t, z_dim, x_dim, y_dim, training_samples, Sx, Sy, Ux, Uy, S, U, Vh = self.t, self.z_dim, self.x_dim, self.y_dim, self.training_samples, self.Sx, self.Sy, self.Ux, self.Uy, self.S, self.U, self.Vh
+        t, z_dim, x_dim, y_dim, training_samples, Sx, Sy, Ux, Uy, S, U, Vh, M = self.t, self.z_dim, self.x_dim, self.y_dim, self.training_samples, self.Sx, self.Sy, self.Ux, self.Uy, self.S, self.U, self.Vh, self.M
         
         if t>training_samples:
             
@@ -351,7 +351,7 @@ class gen_oja:
         self.t += 1
                 
         return vx.reshape(self.x_dim,1), vy.reshape(self.y_dim,1)
-    
+
 class asymmetric:
     """
     Parameters:
@@ -359,64 +359,59 @@ class asymmetric:
     z_dim         -- Dimension of output
     x_dim, y_dim  -- Dimensions of inputs
     Wx0, Wy0      -- Initialization for the forward weights Wx and Wy, must be of size z_dim by x_dim and z_dim by y_dim
-    M0            -- Initialization for the asymmetric lateral weights, must be lower triangular 
+    M0            -- Initialization for the asymmetric lateral weights, must be lower triangular
+    alpha0, beta0 -- Initialization for alpha, beta
     learning_rate -- Learning rate as a function of t
     
     Methods:
     ========
     fit_next()
     """
-    
-    def __init__(self, z_dim, x_dim, y_dim, dataset=None, M0=None, Wx0=None, Wy0=None, eta0=None, eta_decay=None):
+
+    def __init__(self, z_dim, x_dim, y_dim, dataset=None, alpha0=None, beta0=None, M0=None, Wx0=None, Wy0=None):
 
         if M0 is not None:
             M = M0
         else:
-            M = np.zeros(z_dim,z_dim)
+            M = np.zeros((z_dim,z_dim))
 
-        if Wx0 is None:
+        if Wx0 is not None:
+            Wx = Wx0
+        else:
             Wx = np.random.randn(z_dim,x_dim)
             for i in range(z_dim):
                 Wx[i,:] = Wx[i,:]/np.linalg.norm(Wx[i,:])
-            
-        if Wy0 is None:
+        
+        if Wy0 is not None:
+            Wy = Wy0
+        else:
             Wy = np.random.randn(z_dim,y_dim)
             for i in range(z_dim):
                 Wy[i,:] = Wy[i,:]/np.linalg.norm(Wy[i,:])
-
-        # optimal hyperparameters for test datasets
-            
-        if dataset=='synthetic':
-            if eta0 is None:
-                eta0 = 0.001
-            if decay is None:
-                decay = 0.0001
-                
-        elif dataset=='mediamill':
-            if eta0 is None:
-                eta0 = 0.001
-            if decay is None:
-                decay = 0.0001
-                
+        
+        if alpha0 is not None:
+            alpha = alpha0
         else:
-            if eta0 is None:
-                eta0 = 0.01
-            if decay is None:
-                decay = 0.001
+            alpha = np.zeros(z_dim)
+            
+        if beta0 is not None:
+            beta = beta0
+        else:
+            beta = np.zeros(z_dim)
 
         self.t = 0
-        self.eta0 = eta0
-        self.eta_decay = decay
         self.x_dim = x_dim
         self.y_dim = y_dim
         self.z_dim = z_dim
         self.M = M
         self.Wx = Wx
         self.Wy = Wy
+        self.alpha = alpha
+        self.beta = beta
 
     def fit_next(self, x, y):
 
-        t, Wx, Wy, M  = self.t, self.Wx, self.Wy, self.M
+        t, z_dim, Wx, Wy, M, alpha, beta = self.t, self.z_dim, self.Wx, self.Wy, self.M, self.alpha, self.beta
         
         # project inputs
         
@@ -425,21 +420,21 @@ class asymmetric:
         
         # neural dynamics
         
+        z = np.zeros(z_dim)
+        
         for i in range(z_dim):
             z[i] = a+b-M[i,:i]@z[:i]
 
         # synaptic updates
         
-        step = self.eta0/(1+self.decay*t)
+        step = .0001
 
-        Wx += 2*step*np.outer(z-alpha*a,x)
-        Wy += 2*step*np.outer(z-beta*b,y)
-                
-        step_tau = step/tau
-        
+        Wx += 2*step*np.outer(z-np.multiply(alpha,a),x)
+        Wy += 2*step*np.outer(z-np.multiply(beta,b),y)
+                        
         for i in range(z_dim):
-            for j in :
-                M[i,j] += step_tau*z[i]*z[j]
+            for j in range(i+1):
+                M[i,j] += step*z[i]*z[j]
                 
         alpha += (step/2)*(a**2-1)
         beta += (step/2)*(b**2-1)
@@ -450,8 +445,8 @@ class asymmetric:
         
         self.t += 1
         
-        Vx = Wx.T@Minv
-        Vy = Wy.T@Minv
+        Vx = Wx.T
+        Vy = Wy.T
         
         return Vx, Vy
 
