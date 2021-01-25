@@ -361,7 +361,7 @@ class gen_oja:
                 
         return vx.reshape(self.x_dim,1), vy.reshape(self.y_dim,1)
 
-class asymmetric:
+class asy_cca:
     """
     Parameters:
     ====================

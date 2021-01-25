@@ -7,13 +7,64 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import linear_sum_assignment
+from skmultilearn.dataset import load_from_arff
 
 ##############################
 
-# def synthetic_data(z_dim, x_dim, y_dim, samples):
+def synthetic_data(s_dim, x_dim, y_dim, samples):
 
-# def mediamill():    
+    # Transformation matrices
+
+    Tx = np.random.randn(x_dim,s_dim)
+    Ty = np.random.randn(y_dim,s_dim)
+
+    # Positive definite covariance matrices
+
+    Psixx = np.random.randn(x_dim,x_dim); Psixx = Psixx@Psixx
+    Psiyy = np.random.randn(y_dim,y_dim); Psiyy = Psiyy@Psiyy
     
+    # Matrices of iid standard normals
+
+    S = np.random.randn(s_dim,samples)
+    Nx = np.random.randn(x_dim,samples)
+    Ny = np.random.randn(y_dim,samples)
+
+    # Views
+
+    X = Tx@S + Nx
+    Y = Ty@S + Ny
+    
+    # Save data
+
+    np.save("data/synthetic/view1.npy", X)
+    np.save("data/synthetic/view2.npy", Y)
+    
+def mediamill_data():
+    
+    # Load data
+    
+    data, meta = scipy.io.arff.loadarff("data/mediamill/mediamill.arff")
+    
+    X = np.array(data.tolist(),dtype=np.float64)[:,0:120].T
+    Y = np.array(data.tolist(),dtype=np.float64)[:,120:221].T
+    
+    samples = X.shape[1]
+
+    # Center data
+    
+    X = X - np.outer(X.mean(axis=1),np.ones(samples))
+    Y = Y - np.outer(Y.mean(axis=1),np.ones(samples))
+
+    # Condition data
+    
+    X = X + np.sqrt(.1)*np.random.randn(X.shape[0],X.shape[1])
+    Y = Y + np.sqrt(.1)*np.random.randn(Y.shape[0],Y.shape[1])
+    
+    # Save data
+    
+    np.save("data/mediamill/view1.npy", X)
+    np.save("data/mediamill/view2.npy", Y)
+
 def correlation_matrix(Cxx, Cyy, Cxy):
     """
     Parameters:
