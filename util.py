@@ -10,90 +10,9 @@ from scipy.optimize import linear_sum_assignment
 
 ##############################
 
-def synthetic_data(s_dim, x_dim, samples):
-    """
-    Parameters:
-    ====================
-    s_dim   -- The dimension of sources
-    x_dim   -- The dimension of mixtures
-    samples -- The number of samples
+# def synthetic_data(z_dim, x_dim, y_dim, samples):
 
-    Output:
-    ====================
-    S       -- The source data matrix
-    X       -- The mixture data matrix
-    """
-    
-    print(f'Generating {s_dim}-dimensional sparse uniform source data...')
-
-    # Generate sparse random samples
-
-    U = np.random.uniform(0,np.sqrt(48/5),(s_dim,samples)) # independent non-negative uniform source RVs with variance 1
-    B = np.random.binomial(1, .5, (s_dim,samples)) # binomial RVs to sparsify the source
-    S = U*B # sources
-
-    print(f'Generating {x_dim}-dimensional mixtures...')
-    
-    A = np.random.randn(x_dim,s_dim) # random mixing matrix
-
-    # Generate mixtures
-    
-    X = A@S
-    
-    np.save(f'datasets/{s_dim}-dim_synthetic/sources.npy', S)
-    np.save(f'datasets/{s_dim}-dim_synthetic/mixtures.npy', X)
-    
-def mediamill(s_dim, x_dim):
-    """
-    Parameters:
-    ====================
-    s_dim   -- The dimension of sources
-    x_dim   -- The dimension of mixtures
-
-    Output:
-    ====================
-    S       -- The source data matrix
-    X       -- The mixture data matrix
-    """
-    
-    print(f'Generating {s_dim}-dimensional image source data...')
-
-    # Generate image sources
-    
-    image_numbers = [5, 6, 11]; winsize=252 # 3 pre-specified image patches
-    posx = [220, 250, 200]
-    posy = [1, 1, 1]
-
-    S = np.zeros((s_dim, winsize**2))
-
-    plt.figure(figsize=(15,10))
-
-    for i in range(s_dim):
-        image = imageio.imread(f"images/{image_numbers[i]}.tiff")
-        window = image[posy[i]:posy[i] + winsize, posx[i]:posx[i] + winsize]
-        plt.subplot(s_dim, 1, i+1)
-        plt.imshow(window, cmap="gray")
-        window = window.reshape(1,-1)
-        window = window - window.min(axis=1)
-        window_var = np.cov(window)
-        window = window*(window_var**-.5)
-        S[i,:] = window
-
-    plt.show()
-
-    S = np.array(S)
-
-    print(f'Generating {x_dim}-dimensional mixtures...')
-    
-    A = np.random.randn(x_dim,s_dim) # random mixing matrix
-
-    # Generate mixtures
-    
-    X = A@S
-    
-    np.save(f'datasets/image/sources.npy', S)
-    np.save(f'datasets/image/mixtures.npy', X)
-    
+# def mediamill():    
     
 def correlation_matrix(Cxx, Cyy, Cxy):
     """
@@ -138,6 +57,11 @@ def error(Vx, Vy, Cxx, Cyy, Cxy, max_obj):
 
     return err
 
+def msg_error(M, Rxy, max_obj):
+
+    error = (max_obj - np.trace(Rxy@M.T)/2)/max_obj
+
+    return error
 
 def constraint_error(Vx, Vy, Cxx, Cyy):
     """

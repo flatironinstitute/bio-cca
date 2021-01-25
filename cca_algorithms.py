@@ -1,5 +1,5 @@
 # Title: cca_algorithms.py
-# Description: Implementation of online algorithms for Canonical Correlation Analysis, including Bio-CCA, Gen-Oja and MSG-CCA.
+# Description: Implementation of online algorithms for Canonical Correlation Analysis, including Bio-CCA, MSG-CCA, Gen-Oja, Asymmetric CCA, Bio-RRR.
 # Author: David Lipshutz (dlipshutz@flatironinstitute.org)
 # References: D. Lipshutz, Y. Bahroun, S. Golkar, A.M. Sengupta and D.B. Chklovskii "A biologically plausible neural network for multi-channel Canonical Correlation Analysis" (2020)
 #             R. Arora, T.V. Marinov, P. Mianjy and N. Sbrero "Stochastic Approximation for Canonical Correlation Analysis" (2017)
@@ -18,71 +18,78 @@ class bio_cca:
     """
     Parameters:
     ====================
-    dataset         -- Dataset
-    z_dim           -- Dimension of output
-    x_dim, y_dim    -- Dimensions of inputs
-    M0              -- Initialization for the lateral weight matrix M, must be of size z_dim by z_dim
-    Wx0, Wy0        -- Initialization for the feedforward weight matrices Wx and Wy, must be of size z_dim by x_dim and z_dim by y_dim
-    eta0, eta_decay -- Learning rate parameters: eta = eta0/(1+eta_decay*t)
-    tau             -- Ratio of Wx/Wy learning rate and M learning rate
+    z_dim         -- Dimension of output
+    x_dim, y_dim  -- Dimensions of inputs
+    dataset       -- Input dataset to use the optimal learning rates that were found using a grid search
+    M0            -- Initialization for the lateral weight matrix M, must be of size z_dim by z_dim
+    Wx0, Wy0      -- Initialization for the feedforward weight matrices Wx and Wy, must be of size z_dim by x_dim and z_dim by y_dim
+    eta           -- Learning rate
+    tau           -- Ratio of Wx/Wy learning rate and M learning rate
     
     Methods:
     ========
     fit_next()
     """
 
-    def __init__(self, z_dim, x_dim, y_dim, dataset=None, M0=None, Wx0=None, Wy0=None, eta0=None, eta_decay=None, tau=None):
+    def __init__(self, z_dim, x_dim, y_dim, dataset=None, M0=None, Wx0=None, Wy0=None, eta=None, tau=0.1):
+        
+        # synaptic weight initializations
 
         if M0 is not None:
+            assert M0.shape==(z_dim,z_dim)
             M = M0
         else:
             M = np.eye(z_dim)
 
-        if Wx0 is None:
+        if Wx0 is not None:
+            assert Wx0.shape==(z_dim,x_dim)
+            Wx = Wx0
+        else:
             Wx = np.random.randn(z_dim,x_dim)
             for i in range(z_dim):
                 Wx[i,:] = Wx[i,:]/np.linalg.norm(Wx[i,:])
             
-        if Wy0 is None:
+        if Wy0 is not None:
+            assert Wy0.shape==(z_dim,y_dim)
+            Wy = Wy0
+        else:
             Wy = np.random.randn(z_dim,y_dim)
             for i in range(z_dim):
                 Wy[i,:] = Wy[i,:]/np.linalg.norm(Wy[i,:])
 
         # optimal hyperparameters for test datasets
             
-        if dataset=='synthetic':
-            if eta0 is None:
-                eta0 = 0.001
-            if eta_decay is None:
-                eta_decay = 0.0001
-            if tau is None:
+        if dataset is not None:
+            if dataset=='synthetic':
+                eta0 = 1e-3
+                eta_decay = 1e-4
                 tau = 0.1
-        elif dataset=='mediamill':
-            if eta0 is None:
-                eta0 = 0.001
-            if eta_decay is None:
-                eta_decay = 0.0001
-            if tau is None:
-                tau = .03
-        else:
-            if eta0 is None:
-                eta0 = 0.01
-            if eta_decay is None:
-                eta_decay = 0.001
-            if tau is None:
-                tau = 0.5
-
+            elif dataset=='mediamill':
+                eta0 = 1e-2
+                eta_decay = 1e-4
+                tau = 0.1
+            else:
+                print('The optimal learning rates for this dataset are not stored')
+                
+            def eta(t):
+                return eta0/(1+eta_decay*t)
+        
+        # default learning rate:
+        
+        if eta is None:
+            def eta(t):
+                return 10**-3/(1+1e-4*t)
+        
         self.t = 0
-        self.eta0 = eta0
-        self.eta_decay = eta_decay
-        self.tau = tau
+        self.z_dim = z_dim
         self.x_dim = x_dim
         self.y_dim = y_dim
-        self.z_dim = z_dim
         self.M = M
         self.Minv = np.linalg.inv(M)
         self.Wx = Wx
         self.Wy = Wy
+        self.eta = eta
+        self.tau = tau
 
     def fit_next(self, x, y):
 
@@ -99,12 +106,12 @@ class bio_cca:
 
         # synaptic updates
         
-        step = self.eta0/(1+self.eta_decay*t)
+        eta = self.eta(t)
 
-        Wx += 2*step*np.outer(z-a,x)
-        Wy += 2*step*np.outer(z-b,y)
+        Wx += 2*eta*np.outer(z-a,x)
+        Wy += 2*eta*np.outer(z-b,y)
                 
-        M += (step/tau)*(np.outer(z,z)-M)
+        M += (eta/tau)*(np.outer(z,z)-M)
         Minv = np.linalg.inv(M)
         
         self.Wx = Wx
@@ -123,7 +130,6 @@ class msg_cca:
     """
     Parameters:
     ====================
-    dataset          -- Dataset
     z_dim            -- Dimension of output
     x_dim, y_dim     -- Dimensions of inputs
     training_samples -- Size of training set
@@ -135,7 +141,7 @@ class msg_cca:
     fit_next()
     """
 
-    def __init__(self, z_dim, x_dim, y_dim, dataset=None, training_samples=100):
+    def __init__(self, z_dim, x_dim, y_dim, dataset=None, training_samples=1000):
 
         U = ortho_group.rvs(dim=x_dim)
         Vh = ortho_group.rvs(dim=y_dim)
@@ -209,7 +215,7 @@ class msg_cca:
             
             # set step size
         
-            step = .1/np.sqrt(t-training_samples+1)
+            step = .1/np.sqrt(t-training_samples)
 
             # update covariance svd
 
@@ -255,74 +261,77 @@ class msg_cca:
         self.t += 1
         
         return M
-    
-    def error(self, M, Rxy, max_obj):
-        
-        error = (max_obj - np.trace(Rxy@M.T)/2)/max_obj
-        
-        return error
-        
+            
 class gen_oja:
     """
     Parameters:
     ====================
-    x_dim, y_dim      -- Dimensions of inputs
-    wx0, wy0          -- Initializations for wx and wy, must be of size z_dim by x_dim and z_dim by y_dim
-    vx0, vy0          -- Initializations for vx and vy, must be of size z_dim by x_dim and z_dim by y_dim
-    alpha             -- Maximization step size
-    beta0, beta_decay -- Minimization learning parameters: beta = beta0/(1+beta_decay*t)
+    x_dim, y_dim  -- Dimensions of inputs
+    dataset.      -- Input dataset
+    wx0, wy0      -- Initializations for wx and wy, must be of size z_dim by x_dim and z_dim by y_dim
+    vx0, vy0      -- Initializations for vx and vy, must be of size z_dim by x_dim and z_dim by y_dim
+    alpha         -- Maximization step size
+    beta          -- Minimization learning parameters: beta = beta0/(1+beta_decay*t)
     
     Methods:
     ========
     fit_next()
     """
     
-    def __init__(self, x_dim, y_dim, dataset=None, wx0=None, wy0=None, vx0=None, vy0=None, alpha=None, beta0=None, beta_decay=None):
+    def __init__(self, x_dim, y_dim, dataset=None, wx0=None, wy0=None, vx0=None, vy0=None, alpha=1e-3, beta=None):
 
-        if wx0 is None:
+        if wx0 is not None:
+            assert wx0.shape==(x_dim,)
+            wx = wx0
+        else:
             wx = np.random.randn(x_dim)
             wx = wx/np.linalg.norm(wx)
             
-        if wy0 is None:
+        if wy0 is not None:
+            assert wy0.shape==(y_dim,)
+            wy = wy0
+        else:
             wy = np.random.randn(y_dim)
             wy = wy/np.linalg.norm(wy)
 
-        if vx0 is None:
+        if vx0 is not None:
+            assert vx0.shape==(x_dim,)
+        else:
             vx = np.random.randn(x_dim)
             vx = vx/np.linalg.norm(vx)
             
-        if vy0 is None:
+        if vy0 is not None:
+            assert vy0.shape==(y_dim,)
+        else:
             vy = np.random.randn(y_dim)
             vy = vy/np.linalg.norm(vy)
 
         # optimal hyperparameters for test datasets
-            
-        if dataset=='synthetic':
-            if alpha is None:
-                alpha = 0.001
-            if beta0 is None:
+        
+        if dataset is not None:
+            if dataset=='synthetic':
+                alpha = 1.4e-3
                 beta0 = 1
-            if beta_decay is None:
-                beta_decay = 0.01
-        elif dataset=='mediamill':
-            if alpha is None:
-                alpha = 0.001
-            if beta0 is None:
-                beta0 = 0.001
-            if beta_decay is None:
-                beta_decay = 0.0001
-        else:
-            if alpha is None:
-                alpha = 0.01
-            if beta0 is None:
-                beta0 = 0.001
-            if beta_decay is None:
-                beta_decay = 0.001
+                beta_decay = 1e-2
+            elif dataset=='mediamill':
+                alpha = 3.9e-2
+                beta0 = 1e-2
+                beta_decay = 1e-4
+            else:
+                print('The optimal learning rates for this dataset are not stored')
+                
+            def beta(t):
+                return beta0/(1+beta_decay*t)
+        
+        # default learning rate:
 
+        if beta is None:
+            def beta(t):
+                return 10**-3/(1+1e-4*t)
+                
         self.t = 0
         self.alpha = alpha
-        self.beta0 = beta0
-        self.beta_decay = beta_decay
+        self.beta = beta
         self.x_dim = x_dim
         self.y_dim = y_dim
         self.wx = wx
@@ -334,12 +343,12 @@ class gen_oja:
 
         t, wx, wy, vx, vy, alpha = self.t, self.wx, self.wy, self.vx, self.vy, self.alpha
         
-        beta_t = self.beta0/(1+self.beta_decay*t)
+        beta = self.beta(t)
 
         wx -= alpha*(np.inner(wx,x) - np.inner(vy,y))*x
         wy -= alpha*(np.inner(wy,y) - np.inner(vx,x))*y
-        vx += beta_t*wx
-        vy += beta_t*wy
+        vx += beta*wx
+        vy += beta*wy
         v = np.hstack((vx,vy))
         vx /= np.linalg.norm(v); vy /= np.linalg.norm(v)
                         
@@ -358,6 +367,7 @@ class asymmetric:
     ====================
     z_dim         -- Dimension of output
     x_dim, y_dim  -- Dimensions of inputs
+    dataset       -- Input dataset to use the optimal learning rates that were found using a grid search
     Wx0, Wy0      -- Initialization for the forward weights Wx and Wy, must be of size z_dim by x_dim and z_dim by y_dim
     M0            -- Initialization for the asymmetric lateral weights, must be lower triangular
     alpha0, beta0 -- Initialization for alpha, beta
@@ -368,85 +378,78 @@ class asymmetric:
     fit_next()
     """
 
-    def __init__(self, z_dim, x_dim, y_dim, dataset=None, alpha0=None, beta0=None, M0=None, Wx0=None, Wy0=None):
+    def __init__(self, z_dim, x_dim, y_dim, dataset=None, alpha=5e-6, M0=None, Vx0=None, Vy0=None):
 
         if M0 is not None:
+            assert M.shape==(z_dim,z_dim)
+            
+            # verify M0 is lower triangular
+            
+            for i in range(z_dim):
+                for j in range(i+1):
+                    assert M[i,j]==0
+                    
             M = M0
         else:
-            M = np.zeros((z_dim,z_dim))
+            M = np.random.randn(z_dim,z_dim)
+            M = np.tril(M+M.T,-1)
 
-        if Wx0 is not None:
-            Wx = Wx0
+        if Vx0 is not None:
+            assert Vx0.shape==(x_dim,z_dim)
+            Vx = Vx0
         else:
-            Wx = np.random.randn(z_dim,x_dim)
+            Vx = np.random.randn(x_dim,z_dim)
             for i in range(z_dim):
-                Wx[i,:] = Wx[i,:]/np.linalg.norm(Wx[i,:])
+                Vx[:,i] = Vx[:,i]/np.linalg.norm(Vx[:,i])
         
-        if Wy0 is not None:
-            Wy = Wy0
+        if Vy0 is not None:
+            assert Vy0.shape==(y_dim,z_dim)
+            Vy = Vy0
         else:
-            Wy = np.random.randn(z_dim,y_dim)
+            Vy = np.random.randn(y_dim,z_dim)
             for i in range(z_dim):
-                Wy[i,:] = Wy[i,:]/np.linalg.norm(Wy[i,:])
-        
-        if alpha0 is not None:
-            alpha = alpha0
-        else:
-            alpha = np.zeros(z_dim)
-            
-        if beta0 is not None:
-            beta = beta0
-        else:
-            beta = np.zeros(z_dim)
+                Vy[:,i] = Vy[:,i]/np.linalg.norm(Vy[:,i])
 
         self.t = 0
         self.x_dim = x_dim
         self.y_dim = y_dim
         self.z_dim = z_dim
         self.M = M
-        self.Wx = Wx
-        self.Wy = Wy
+        self.Vx = Vx
+        self.Vy = Vy
         self.alpha = alpha
-        self.beta = beta
+        self.Lambda = np.diag(np.random.randn(z_dim))
+        self.Gamma = np.diag(np.random.randn(z_dim))
 
     def fit_next(self, x, y):
-
-        t, z_dim, Wx, Wy, M, alpha, beta = self.t, self.z_dim, self.Wx, self.Wy, self.M, self.alpha, self.beta
+        
+        t, z_dim, Vx, Vy, M, alpha, Lambda, Gamma = self.t, self.z_dim, self.Vx, self.Vy, self.M, self.alpha, self.Lambda, self.Gamma
         
         # project inputs
         
-        a = Wx@x
-        b = Wy@y
+        a = Vx.T@x
+        b = Vy.T@y
         
         # neural dynamics
         
-        z = np.zeros(z_dim)
+        z = np.linalg.inv(np.eye(z_dim) + M)@(a+b)
         
-        for i in range(z_dim):
-            z[i] = a+b-M[i,:i]@z[:i]
-
-        # synaptic updates
+        # synaptic weight updates
         
-        step = .0001
+        step = .02*max(1 - alpha*t, 0.1)
 
-        Wx += 2*step*np.outer(z-np.multiply(alpha,a),x)
-        Wy += 2*step*np.outer(z-np.multiply(beta,b),y)
-                        
-        for i in range(z_dim):
-            for j in range(i+1):
-                M[i,j] += step*z[i]*z[j]
+        Vx += step*np.outer(x,z-Lambda@a)
+        Vy += step*np.outer(y,z-Gamma@b)
+        Lambda += (step/2)*(a@a.T-1)*np.eye(z_dim)
+        Gamma += (step/2)*(b@b.T-1)*np.eye(z_dim)
+        M += step*z@z.T
+        M = np.tril(M,-1)
                 
-        alpha += (step/2)*(a**2-1)
-        beta += (step/2)*(b**2-1)
-        
-        self.Wx = Wx
-        self.Wy = Wy
+        self.Vx = Vx
+        self.Vy = Vy
         self.M = M
         
         self.t += 1
-        
-        Vx = Wx.T
-        Vy = Wy.T
         
         return Vx, Vy
 
@@ -456,8 +459,9 @@ class bio_rrr:
     ====================
     z_dim         -- Dimension of output
     x_dim, y_dim  -- Dimensions of inputs
-    Wx0, Wy0      -- Initial guesses for the forward weight matrices Wx and Wy, must be of size z_dim by x_dim and z_dim by y_dim
-    P0
+    dataset       -- Input dataset
+    Wx0, Wy0      -- Initialization for the forward weigts Wx and Wy, must be of size z_dim by x_dim and z_dim by y_dim
+    P0            -- Initialization for the pyramidal neuron-to-interneuron weights
     learning_rate -- Learning rate as a function of t
     
     Methods:
@@ -465,78 +469,96 @@ class bio_rrr:
     fit_next()
     """
     
-    def __init__(self, z_dim, x_dim, y_dim, dataset=None, Vx0=None, Vy0=None, P0=None, eta0=None, decay=None, tau=None):
+    def __init__(self, z_dim, x_dim, y_dim, dataset=None, Vx0=None, Vy0=None, Q0=None, eta_x=None, eta_y=None, eta_q=None):
 
-        if Vx0 is None:
+        if Vx0 is not None:
+            assert Vx0.shape==(x_dim,z_dim)
+            Vx = Vx0
+        else:
             Vx = np.random.randn(x_dim,z_dim)
             for i in range(z_dim):
                 Vx[i,:] = Vx[i,:]/np.linalg.norm(Vx[i,:])
             
-        if Vy0 is None:
+        if Vy0 is not None:
+            assert Vy0.shape==(y_dim,z_dim)
+            Vy = Vy0
+        else:
             Vy = np.random.randn(y_dim,z_dim)
             for i in range(z_dim):
                 Vy[i,:] = Vy[i,:]/np.linalg.norm(Vy[i,:])
                 
-        if P0 is None:
-            P = np.eye(z_dim)
+        if Q0 is not None:
+            assert Q0.shape==(z_dim,z_dim)
+            Q = Q0
+        else:
+            Q = np.eye(z_dim)
 
         # optimal hyperparameters for test datasets
+                    
+        if dataset is not None:
+            if dataset=='synthetic':
+                eta_x0 = 0.001
+                eta_x_decay = 0.0001
+                eta_y0 = 0.001
+                eta_y_decay = 0.0001
+                eta_q0 = 0.001
+                eta_q_decay = 0.0001
+            elif dataset=='mediamill' and z_dim==1:
+                eta_x0 = 3
+                eta_x_decay = 1e-2
+                eta_y0 = 6e-2
+                eta_y_decay = 1e-2
+                eta_q0 = 6e-2
+                eta_q_decay = 1e-2
+            elif dataset=='mediamill' and z_dim==2:
+                eta_x0 = 3
+                eta_x_decay = 1e-2
+                eta_y0 = 6e-2
+                eta_y_decay = 1e-2
+                eta_q0 = 6e-2
+                eta_q_decay = 1e-2                
+            else:
+                print('The optimal learning rates for this dataset are not stored')
+                
+            def eta_x(t):
+                return eta_x0/(1+eta_x_decay*t)
             
-        if dataset=='synthetic':
-            if eta0 is None:
-                eta0 = 1.5
-            if decay is None:
-                decay = 0.002
-            if tau is None:
-                tau = 500
-        elif dataset=='mediamill':
-            if eta0 is None:
-                eta0 = 0.001
-            if decay is None:
-                decay = 0.0001
-            if tau is None:
-                tau = .03
-        else:
-            if eta0 is None:
-                eta0 = 0.01
-            if decay is None:
-                decay = 0.001
-            if tau is None:
-                tau = 0.5
+            def eta_y(t):
+                return eta_y0/(1+eta_x_decay*t)
+                
+            def eta_q(t):
+                return eta_q0/(1+eta_q_decay*t)
 
         self.t = 0
-        self.eta0 = eta0
-        self.decay = decay
-        self.tau = tau
+        self.eta_x = eta_x
+        self.eta_y = eta_y
+        self.eta_q = eta_q
         self.x_dim = x_dim
         self.y_dim = y_dim
         self.z_dim = z_dim
-        self.P = P
+        self.Q = Q
         self.Vx = Vx
         self.Vy = Vy
 
     def fit_next(self, x, y):
 
-        t, tau, Vx, Vy, P  = self.t, self.tau, self.Vx, self.Vy, self.P
+        t, Vx, Vy, Q  = self.t, self.Vx, self.Vy, self.Q
         
         # project inputs
         
-        a = Vx.T@x
-        z = Vy.T@y
-        n = P.T@z
+        z = Vx.T@x
+        a = Vy.T@y
+        n = Q.T@z
         
         # synaptic updates
         
-        step = self.eta0/(1+self.decay*t)
-        step_tau = step/tau
-
-        Vx += 2*step_tau*np.outer(x,z-a)
-        Vy += 2*step*np.outer(y,a-P@n)
-        P += step_tau*(np.outer(z,n)-P)
+        Vx += 2*self.eta_x(t)*np.outer(x,a-Q@n)
+        Vy += 2*self.eta_y(t)*np.outer(y,z-a)
+        Q += self.eta_q(t)*(np.outer(z,n)-Q)
         
         self.Vx = Vx
         self.Vy = Vy
-        self.P = P
+        self.Q = Q
         
         self.t += 1
         
