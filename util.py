@@ -94,9 +94,7 @@ def error(Vx, Vy, Cxx, Cyy, Cxy, max_obj):
     ====================
     err           -- The (relative) Frobenius norm error
     """
-    
-    z_dim = Vx.shape[1]
-    
+        
     sig, U = np.linalg.eig(Vx.T@Cxx@Vx + Vy.T@Cyy@Vy)
     
     norm_matrix = U@np.diag(1./np.sqrt(sig))@U.T
@@ -108,11 +106,25 @@ def error(Vx, Vy, Cxx, Cyy, Cxy, max_obj):
 
     return err
 
-def msg_error(M, Rxy, max_obj):
+def msg_error(Vx, Vy, Cxx, Cyy, Cxy, max_obj):
 
-    error = (max_obj - np.trace(Rxy@M.T)/2)/max_obj
+    err = (max_obj - np.trace(Rxy@M.T)/2)/max_obj
 
-    return error
+    return err
+
+def biorrr_error(Vx, Vy, Cxx, Cyy_inv, Cxy, max_obj):
+    
+    sigx, Ux = np.linalg.eig(Vx.T@Cxx@Vx)
+    
+    norm_matrix = Ux@np.diag(1./np.sqrt(sigx))@Ux.T
+    
+    Vx_normalized = Vx@norm_matrix
+    
+    sig, U = np.linalg.eig(Vx_normalized.T@Cxy@Cyy_inv@Cxy.T@Vx_normalized)
+    
+    err = (max_obj - np.trace(U@np.diag(np.sqrt(sig))@U.T)/2)/max_obj
+    
+    return err
 
 def constraint_error(Vx, Vy, Cxx, Cyy):
     """

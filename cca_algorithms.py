@@ -78,7 +78,7 @@ class bio_cca:
         
         if eta is None:
             def eta(t):
-                return 10**-3/(1+1e-4*t)
+                return 1e-3/(1+1e-4*t)
         
         self.t = 0
         self.z_dim = z_dim
@@ -378,7 +378,7 @@ class asy_cca:
     fit_next()
     """
 
-    def __init__(self, z_dim, x_dim, y_dim, dataset=None, alpha=5e-6, M0=None, Vx0=None, Vy0=None):
+    def __init__(self, z_dim, x_dim, y_dim, dataset=None, M0=None, Vx0=None, Vy0=None, eta=None):
 
         if M0 is not None:
             assert M.shape==(z_dim,z_dim)
@@ -409,6 +409,17 @@ class asy_cca:
             Vy = np.random.randn(y_dim,z_dim)
             for i in range(z_dim):
                 Vy[:,i] = Vy[:,i]/np.linalg.norm(Vy[:,i])
+                
+        if dataset=='synthetic':
+            def eta(t):
+                return .0001
+        elif dataset=='mediamill':
+            def eta(t):
+                return .02*max(1-5e-4*t,.1)
+        else:
+            if eta is None:
+                def eta(t):
+                    return .001
 
         self.t = 0
         self.x_dim = x_dim
@@ -417,13 +428,13 @@ class asy_cca:
         self.M = M
         self.Vx = Vx
         self.Vy = Vy
-        self.alpha = alpha
         self.Lambda = np.diag(np.random.randn(z_dim))
         self.Gamma = np.diag(np.random.randn(z_dim))
+        self.eta = eta
 
     def fit_next(self, x, y):
         
-        t, z_dim, Vx, Vy, M, alpha, Lambda, Gamma = self.t, self.z_dim, self.Vx, self.Vy, self.M, self.alpha, self.Lambda, self.Gamma
+        t, z_dim, Vx, Vy, M, eta, Lambda, Gamma = self.t, self.z_dim, self.Vx, self.Vy, self.M, self.eta, self.Lambda, self.Gamma
         
         # project inputs
         
@@ -436,7 +447,7 @@ class asy_cca:
         
         # synaptic weight updates
         
-        step = .02*max(1 - alpha*t, 0.1)
+        step = eta(t)
 
         Vx += step*np.outer(x,z-Lambda@a)
         Vy += step*np.outer(y,z-Gamma@b)
@@ -504,19 +515,26 @@ class bio_rrr:
                 eta_q0 = 0.001
                 eta_q_decay = 0.0001
             elif dataset=='mediamill' and z_dim==1:
-                eta_x0 = 3
+                eta_x0 = .03
+                eta_x_decay = 1e-2
+                eta_y0 = .06e-2
+                eta_y_decay = 1e-2
+                eta_q0 = .06e-2
+                eta_q_decay = 1e-2
+            elif dataset=='mediamill' and z_dim==2:
+                eta_x0 = 2.5
                 eta_x_decay = 1e-2
                 eta_y0 = 6e-2
                 eta_y_decay = 1e-2
                 eta_q0 = 6e-2
                 eta_q_decay = 1e-2
-            elif dataset=='mediamill' and z_dim==2:
-                eta_x0 = 3
-                eta_x_decay = 1e-2
-                eta_y0 = 6e-2
-                eta_y_decay = 1e-2
-                eta_q0 = 6e-2
-                eta_q_decay = 1e-2                
+            elif dataset=='mediamill' and z_dim==4:
+                eta_x0 = 1.2
+                eta_x_decay = 1e-3
+                eta_y0 = 2.4e-2
+                eta_y_decay = 1e-3
+                eta_q0 = 2.4e-2
+                eta_q_decay = 1e-3
             else:
                 print('The optimal learning rates for this dataset are not stored')
                 
@@ -561,5 +579,5 @@ class bio_rrr:
         self.Q = Q
         
         self.t += 1
-        
+                
         return Vx, Vy
