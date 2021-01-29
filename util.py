@@ -39,6 +39,21 @@ def synthetic_data(s_dim, x_dim, y_dim, samples):
     np.save("data/synthetic/view1.npy", X)
     np.save("data/synthetic/view2.npy", Y)
     
+def adaptive_data(s_dim, x_dim, y_dim, samples):
+    
+    epochs = len(s_dim) # s_dim is a vector input with the dimensions of the latent signal
+    
+    X = np.zeros((x_dim, epochs*samples))
+    Y = np.zeros((y_dim, epochs*samples))
+        
+    for epoch in range(epochs):
+        X[:,epoch*samples:(epoch+1)*samples], Y[:,epoch*samples:(epoch+1)*samples] = synthetic_data(s_dim[epoch], x_dim, y_dim, samples)
+        
+    np.save("datasets/adaptive/view1.npy", X)
+    np.save("datasets/adaptive/view2.npy", Y)
+    
+    return X, Y
+    
 def mediamill_data():
     
     # Load data
