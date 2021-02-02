@@ -45,17 +45,13 @@ class bio_cca:
             assert Wx0.shape==(z_dim,x_dim)
             Wx = Wx0
         else:
-            Wx = np.random.randn(z_dim,x_dim)
-            for i in range(z_dim):
-                Wx[i,:] = Wx[i,:]/np.linalg.norm(Wx[i,:])
+            Wx = np.random.randn(z_dim,x_dim)/np.sqrt(x_dim)
             
         if Wy0 is not None:
             assert Wy0.shape==(z_dim,y_dim)
             Wy = Wy0
         else:
-            Wy = np.random.randn(z_dim,y_dim)
-            for i in range(z_dim):
-                Wy[i,:] = Wy[i,:]/np.linalg.norm(Wy[i,:])
+            Wy = np.random.randn(z_dim,y_dim)/np.sqrt(y_dim)
 
         # optimal hyperparameters for test datasets
             
@@ -157,17 +153,13 @@ class adaptive_bio_cca:
             assert Wx0.shape==(z_dim,x_dim)
             Wx = Wx0
         else:
-            Wx = np.random.randn(z_dim,x_dim)
-            for i in range(z_dim):
-                Wx[i,:] = Wx[i,:]/np.linalg.norm(Wx[i,:])
+            Wx = np.random.randn(z_dim,x_dim)/np.sqrt(x_dim)
             
         if Wy0 is not None:
             assert Wy0.shape==(z_dim,y_dim)
             Wy = Wy0
         else:
-            Wy = np.random.randn(z_dim,y_dim)
-            for i in range(z_dim):
-                Wy[i,:] = Wy[i,:]/np.linalg.norm(Wy[i,:])
+            Wy = np.random.randn(z_dim,y_dim)/np.sqrt(y_dim)
 
         # optimal hyperparameters for test datasets
             
@@ -510,21 +502,23 @@ class asy_cca:
             assert Vx0.shape==(x_dim,z_dim)
             Vx = Vx0
         else:
-            Vx = np.random.randn(x_dim,z_dim)
-            for i in range(z_dim):
-                Vx[:,i] = Vx[:,i]/np.linalg.norm(Vx[:,i])
+            Vx = np.random.randn(x_dim,z_dim)/np.sqrt(x_dim)
         
         if Vy0 is not None:
             assert Vy0.shape==(y_dim,z_dim)
             Vy = Vy0
         else:
-            Vy = np.random.randn(y_dim,z_dim)
-            for i in range(z_dim):
-                Vy[:,i] = Vy[:,i]/np.linalg.norm(Vy[:,i])
+            Vy = np.random.randn(y_dim,z_dim)/np.sqrt(y_dim)
                 
-        if dataset=='synthetic':
+        if dataset=='synthetic' and z_dim==1:
             def eta(t):
-                return .0001
+                return .0007*max(1-5e-2*t,.1)
+        if dataset=='synthetic' and z_dim==2:
+            def eta(t):
+                return 1e-7*max(1-5e-1*t,.1)
+        if dataset=='synthetic' and z_dim==4:
+            def eta(t):
+                return 1e-8
         elif dataset=='mediamill':
             def eta(t):
                 return .02*max(1-5e-4*t,.1)
@@ -598,17 +592,13 @@ class bio_rrr:
             assert Vx0.shape==(x_dim,z_dim)
             Vx = Vx0
         else:
-            Vx = np.random.randn(x_dim,z_dim)
-            for i in range(z_dim):
-                Vx[i,:] = Vx[i,:]/np.linalg.norm(Vx[i,:])
+            Vx = np.random.randn(x_dim,z_dim)/np.sqrt(x_dim)
             
         if Vy0 is not None:
             assert Vy0.shape==(y_dim,z_dim)
             Vy = Vy0
         else:
-            Vy = np.random.randn(y_dim,z_dim)
-            for i in range(z_dim):
-                Vy[i,:] = Vy[i,:]/np.linalg.norm(Vy[i,:])
+            Vy = np.random.randn(y_dim,z_dim)/np.sqrt(y_dim)
                 
         if Q0 is not None:
             assert Q0.shape==(z_dim,z_dim)
@@ -620,12 +610,12 @@ class bio_rrr:
                     
         if dataset is not None:
             if dataset=='synthetic':
-                eta_x0 = 0.001
-                eta_x_decay = 0.0001
-                eta_y0 = 0.001
-                eta_y_decay = 0.0001
-                eta_q0 = 0.001
-                eta_q_decay = 0.0001
+                eta_x0 = 1e-4
+                eta_x_decay = 1e-5
+                eta_y0 = 2e-5
+                eta_y_decay = 1e-5
+                eta_q0 = 2e-5
+                eta_q_decay = 1e-5
             elif dataset=='mediamill' and z_dim==1:
                 eta_x0 = .03
                 eta_x_decay = 1e-2

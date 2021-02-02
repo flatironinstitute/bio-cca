@@ -121,13 +121,13 @@ def error(Vx, Vy, Cxx, Cyy, Cxy, max_obj):
 
     return err
 
-def msg_error(Vx, Vy, Cxx, Cyy, Cxy, max_obj):
+def msg_error(M, Rxy, max_obj):
 
     err = (max_obj - np.trace(Rxy@M.T)/2)/max_obj
 
     return err
 
-def biorrr_error(Vx, Vy, Cxx, Cyy_inv, Cxy, max_obj):
+def biorrr_error(Vx, Cxx, Cyy_inv, Cxy, max_obj):
     
     sigx, Ux = np.linalg.eig(Vx.T@Cxx@Vx)
     
@@ -176,7 +176,8 @@ def add_fill_lines(axis, t, err, plot_kwargs=None, ci_kwargs=None):
     fill        -- Function axis.fill_between() with standard deviation computed on a log scale
     """
         
-    log_err = np.log(err+10**-5) # add 10**-5 to ensure the logarithm is well defined
+#     log_err = np.log(err+10**-5) # add 10**-5 to ensure the logarithm is well defined
+    log_err = np.log(err)
     log_mu = log_err.mean(axis=0)
     sigma = np.std(log_err,axis=0)
     ci_lo, ci_hi = log_mu - sigma, log_mu + sigma
