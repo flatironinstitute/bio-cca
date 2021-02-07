@@ -98,7 +98,7 @@ def correlation_matrix(Cxx, Cyy, Cxy):
 
     return Rxy
 
-def error(Vx, Vy, Cxx, Cyy, Cxy, max_obj):
+def obj_error(Vx, Vy, Cxx, Cyy, Cxy, max_obj):
     """
     Parameters:
     ====================
@@ -127,17 +127,13 @@ def msg_error(M, Rxy, max_obj):
 
     return err
 
-def biorrr_error(Vx, Cxx, Cyy_inv, Cxy, max_obj):
+def subspace_error(V, P_opt):
     
-    sigx, Ux = np.linalg.eig(Vx.T@Cxx@Vx)
+    z_dim = V.shape[1]
     
-    norm_matrix = Ux@np.diag(1./np.sqrt(sigx))@Ux.T
+    P = V@np.linalg.inv(V.T@V+1e-5*np.eye(z_dim))@V.T
     
-    Vx_normalized = Vx@norm_matrix
-    
-    sig, U = np.linalg.eig(Vx_normalized.T@Cxy@Cyy_inv@Cxy.T@Vx_normalized)
-    
-    err = (max_obj - np.trace(U@np.diag(np.sqrt(sig))@U.T)/2)/max_obj
+    err = np.linalg.norm(P-P_opt)**2
     
     return err
 
@@ -176,8 +172,8 @@ def add_fill_lines(axis, t, err, plot_kwargs=None, ci_kwargs=None):
     fill        -- Function axis.fill_between() with standard deviation computed on a log scale
     """
         
-#     log_err = np.log(err+10**-5) # add 10**-5 to ensure the logarithm is well defined
-    log_err = np.log(err)
+    log_err = np.log(err+10**-5) # add 10**-5 to ensure the logarithm is well defined
+#     log_err = np.log(err)
     log_mu = log_err.mean(axis=0)
     sigma = np.std(log_err,axis=0)
     ci_lo, ci_hi = log_mu - sigma, log_mu + sigma

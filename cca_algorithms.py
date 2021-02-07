@@ -510,22 +510,16 @@ class asy_cca:
         else:
             Vy = np.random.randn(y_dim,z_dim)/np.sqrt(y_dim)
                 
-        if dataset=='synthetic' and z_dim==1:
+        if dataset=='synthetic':
             def eta(t):
-                return .0007*max(1-5e-2*t,.1)
-        if dataset=='synthetic' and z_dim==2:
-            def eta(t):
-                return 1e-7*max(1-5e-1*t,.1)
-        if dataset=='synthetic' and z_dim==4:
-            def eta(t):
-                return 1e-8
+                return .002*max(1-5e-6*t,.1)
         elif dataset=='mediamill':
             def eta(t):
-                return .02*max(1-5e-4*t,.1)
+                return .002*max(1-5e-6*t,.1)
         else:
             if eta is None:
                 def eta(t):
-                    return .001
+                    return .0002
 
         self.t = 0
         self.x_dim = x_dim
@@ -561,6 +555,12 @@ class asy_cca:
         Gamma += (step/2)*(b@b.T-1)*np.eye(z_dim)
         M += step*z@z.T
         M = np.tril(M,-1)
+        
+        # The following is to ensure stability of the algorithm 
+        
+        Vx = np.maximum(np.minimum(Vx, 1e5), -1e5)
+        Vy = np.maximum(np.minimum(Vy, 1e5), -1e5)
+        M = np.maximum(np.minimum(M, 1e5), -1e5)
                 
         self.Vx = Vx
         self.Vy = Vy
@@ -610,33 +610,19 @@ class bio_rrr:
                     
         if dataset is not None:
             if dataset=='synthetic':
-                eta_x0 = 1e-4
+                eta_x0 = 1e-3
+                eta_x_decay = 1e-4
+                eta_y0 = 1e-4
+                eta_x_decay = 1e-4
+                eta_q0 = 1e-4
+                eta_q_decay = 1e-4
+            elif dataset=='mediamill':
+                eta_x0 = 1e-2
                 eta_x_decay = 1e-5
-                eta_y0 = 2e-5
+                eta_y0 = 1e-3
                 eta_y_decay = 1e-5
-                eta_q0 = 2e-5
+                eta_q0 = 1e-3
                 eta_q_decay = 1e-5
-            elif dataset=='mediamill' and z_dim==1:
-                eta_x0 = .03
-                eta_x_decay = 1e-2
-                eta_y0 = .06e-2
-                eta_y_decay = 1e-2
-                eta_q0 = .06e-2
-                eta_q_decay = 1e-2
-            elif dataset=='mediamill' and z_dim==2:
-                eta_x0 = 2.5
-                eta_x_decay = 1e-2
-                eta_y0 = 6e-2
-                eta_y_decay = 1e-2
-                eta_q0 = 6e-2
-                eta_q_decay = 1e-2
-            elif dataset=='mediamill' and z_dim==4:
-                eta_x0 = 1.2
-                eta_x_decay = 1e-3
-                eta_y0 = 2.4e-2
-                eta_y_decay = 1e-3
-                eta_q0 = 2.4e-2
-                eta_q_decay = 1e-3
             else:
                 print('The optimal learning rates for this dataset are not stored')
                 
@@ -675,6 +661,10 @@ class bio_rrr:
         Vx += 2*self.eta_x(t)*np.outer(x,a-Q@n)
         Vy += 2*self.eta_y(t)*np.outer(y,z-a)
         Q += self.eta_q(t)*(np.outer(z,n)-Q)
+        
+        Vx = np.minimum(np.maximum(Vx,-1e2),1e2)
+        Vy = np.minimum(np.maximum(Vy,-1e2),1e2)
+        Q = np.minimum(np.maximum(Q,-1e2),1e2)
         
         self.Vx = Vx
         self.Vy = Vy
