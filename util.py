@@ -7,7 +7,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import linear_sum_assignment
-from skmultilearn.dataset import load_from_arff
+# from skmultilearn.dataset import load_from_arff
 
 ##############################
 

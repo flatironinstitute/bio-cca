@@ -516,6 +516,9 @@ class asy_cca:
         elif dataset=='mediamill':
             def eta(t):
                 return .002*max(1-5e-6*t,.1)
+#         elif dataset=='mediamill' and z_dim==1:
+#             def eta(t):
+#                 return .01*max(1-1e-4*t,.1)
         else:
             if eta is None:
                 def eta(t):
@@ -553,14 +556,14 @@ class asy_cca:
         Vy += step*np.outer(y,z-Gamma@b)
         Lambda += (step/2)*(a@a.T-1)*np.eye(z_dim)
         Gamma += (step/2)*(b@b.T-1)*np.eye(z_dim)
-        M += step*z@z.T
+        M += step*np.outer(z,z)
         M = np.tril(M,-1)
         
         # The following is to ensure stability of the algorithm 
         
-        Vx = np.maximum(np.minimum(Vx, 1e5), -1e5)
-        Vy = np.maximum(np.minimum(Vy, 1e5), -1e5)
-        M = np.maximum(np.minimum(M, 1e5), -1e5)
+#         Vx = np.maximum(np.minimum(Vx, 1e5), -1e5)
+#         Vy = np.maximum(np.minimum(Vy, 1e5), -1e5)
+#         M = np.maximum(np.minimum(M, 1e5), -1e5)
                 
         self.Vx = Vx
         self.Vy = Vy
