@@ -214,6 +214,8 @@ class CCAPyramidal:
         Z = np.linalg.inv(np.eye(self.k) + self.M) @ (I_X + I_Y)
         self.W += decay_t * self.eta["W"] * self.X[:, [index]] @ (Z.T - I_X.T @ self.Lambda)
         self.V += decay_t * self.eta["V"] * self.Y[:, [index]] @ (Z.T - I_Y.T @ self.Gamma)
+        self.W = np.maximum(np.minimum(self.W,1e5),-1e5) # this line was added to ensure stability of the algorithm
+        self.V = np.maximum(np.minimum(self.V,1e5),-1e5)
         self.Lambda += decay_t * self.eta["Lambda"] * 1/2 * (I_X @ I_X.T - 1) * np.eye(self.k)
         self.Gamma += decay_t * self.eta["Gamma"] * 1/2 * (I_Y @ I_Y.T - 1) * np.eye(self.k)
         self.M += decay_t * self.eta["M"] * (Z @ Z.T)

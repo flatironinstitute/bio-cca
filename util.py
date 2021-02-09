@@ -6,8 +6,6 @@
 # Imports
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.optimize import linear_sum_assignment
-# from skmultilearn.dataset import load_from_arff
 
 ##############################
 
@@ -34,10 +32,7 @@ def synthetic_data(s_dim, x_dim, y_dim, samples):
     X = Tx@S + Nx
     Y = Ty@S + Ny
     
-    # Save data
-
-    np.save("data/synthetic/view1.npy", X)
-    np.save("data/synthetic/view2.npy", Y)
+    return X, Y
     
 def adaptive_data(s_dim, x_dim, y_dim, samples):
     
@@ -48,9 +43,6 @@ def adaptive_data(s_dim, x_dim, y_dim, samples):
         
     for epoch in range(epochs):
         X[:,epoch*samples:(epoch+1)*samples], Y[:,epoch*samples:(epoch+1)*samples] = synthetic_data(s_dim[epoch], x_dim, y_dim, samples)
-        
-    np.save("datasets/adaptive/view1.npy", X)
-    np.save("datasets/adaptive/view2.npy", Y)
     
     return X, Y
     
@@ -75,10 +67,7 @@ def mediamill_data():
     X = X + np.sqrt(.1)*np.random.randn(X.shape[0],X.shape[1])
     Y = Y + np.sqrt(.1)*np.random.randn(Y.shape[0],Y.shape[1])
     
-    # Save data
-    
-    np.save("data/mediamill/view1.npy", X)
-    np.save("data/mediamill/view2.npy", Y)
+    return X, Y
 
 def correlation_matrix(Cxx, Cyy, Cxy):
     """
