@@ -175,7 +175,7 @@ class adaptive_bio_cca:
             elif dataset=='adaptive':
                 eta0 = 1e-4
                 eta_decay = 0
-                tau = 0.1
+                tau = 1
             else:
                 print('The optimal learning rates for this dataset are not stored')
                 
