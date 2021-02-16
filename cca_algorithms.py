@@ -139,7 +139,7 @@ class adaptive_bio_cca:
     fit_next()
     """
 
-    def __init__(self, z_dim, x_dim, y_dim, dataset=None, P0=None, Wx0=None, Wy0=None, alpha=1, eta=None, tau=0.1):
+    def __init__(self, z_dim, x_dim, y_dim, alpha=1, dataset=None, P0=None, Wx0=None, Wy0=None, eta=None, tau=0.1):
         
         # synaptic weight initializations
 
@@ -171,6 +171,10 @@ class adaptive_bio_cca:
             elif dataset=='mediamill':
                 eta0 = 1e-2
                 eta_decay = 1e-4
+                tau = 0.1
+            elif dataset=='adaptive':
+                eta0 = 1e-4
+                eta_decay = 0
                 tau = 0.1
             else:
                 print('The optimal learning rates for this dataset are not stored')
@@ -206,7 +210,7 @@ class adaptive_bio_cca:
         
         # neural dynamics
         
-        PP_inv = np.linalg.inv(P@P.T+alpha*np.eye(z_dim))
+        PP_inv = np.linalg.inv(P@P.T+alpha*np.eye(self.z_dim))
         
         z = PP_inv@(a+b)
         n = P.T@z
@@ -612,7 +616,14 @@ class bio_rrr:
         # optimal hyperparameters for test datasets
                     
         if dataset is not None:
-            if dataset=='synthetic':
+            if dataset=='synthetic' and z_dim==1:
+                eta_x0 = 1e-3
+                eta_x_decay = 1e-5
+                eta_y0 = 1e-4
+                eta_x_decay = 1e-5
+                eta_q0 = 1e-4
+                eta_q_decay = 1e-5
+            elif dataset=='synthetic':
                 eta_x0 = 1e-3
                 eta_x_decay = 1e-4
                 eta_y0 = 1e-4
@@ -626,6 +637,13 @@ class bio_rrr:
                 eta_y_decay = 1e-5
                 eta_q0 = 1e-3
                 eta_q_decay = 1e-5
+            elif dataset=='adaptive':
+                eta_x0 = 1e-3
+                eta_x_decay = 0
+                eta_y0 = 1e-4
+                eta_x_decay = 0
+                eta_q0 = 1e-4
+                eta_q_decay = 0
             else:
                 print('The optimal learning rates for this dataset are not stored')
                 
