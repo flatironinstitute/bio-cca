@@ -623,13 +623,20 @@ class bio_rrr:
                 eta_x_decay = 1e-5
                 eta_q0 = 1e-4
                 eta_q_decay = 1e-5
-            elif dataset=='synthetic':
+            elif dataset=='synthetic' and z_dim==2:
                 eta_x0 = 1e-3
                 eta_x_decay = 1e-4
                 eta_y0 = 1e-4
                 eta_x_decay = 1e-4
                 eta_q0 = 1e-4
                 eta_q_decay = 1e-4
+            elif dataset=='synthetic':
+                eta_x0 = 1e-3
+                eta_x_decay = 1e-5
+                eta_y0 = 1e-4
+                eta_x_decay = 1e-5
+                eta_q0 = 1e-4
+                eta_q_decay = 1e-5
             elif dataset=='mediamill':
                 eta_x0 = 1e-2
                 eta_x_decay = 1e-5
