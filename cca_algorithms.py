@@ -143,12 +143,6 @@ class adaptive_bio_cca:
         
         # synaptic weight initializations
 
-        if P0 is not None:
-            assert P0.shape==(z_dim,z_dim)
-            P = P0
-        else:
-            P = np.eye(z_dim)
-
         if Wx0 is not None:
             assert Wx0.shape==(z_dim,x_dim)
             Wx = Wx0
@@ -160,6 +154,12 @@ class adaptive_bio_cca:
             Wy = Wy0
         else:
             Wy = np.random.randn(z_dim,y_dim)/np.sqrt(y_dim)
+            
+        if P0 is not None:
+            assert P0.shape==(z_dim,z_dim)
+            P = P0
+        else:
+            P = np.eye(z_dim)
 
         # optimal hyperparameters for test datasets
             
@@ -170,12 +170,12 @@ class adaptive_bio_cca:
                 tau = 0.1
             elif dataset=='mediamill':
                 eta0 = 1e-2
-                eta_decay = 1e-4
-                tau = 0.1
+                eta_decay = 1e-3
+                tau = 0.5
             elif dataset=='adaptive':
                 eta0 = 1e-4
                 eta_decay = 0
-                tau = 1
+                tau = 0.1
             else:
                 print('The optimal learning rates for this dataset are not stored')
                 
@@ -186,7 +186,7 @@ class adaptive_bio_cca:
         
         if eta is None:
             def eta(t):
-                return 1e-3/(1+1e-4*t)
+                return 1e-4
         
         self.t = 0
         self.z_dim = z_dim
@@ -630,13 +630,20 @@ class bio_rrr:
                 eta_x_decay = 1e-4
                 eta_q0 = 1e-4
                 eta_q_decay = 1e-4
-            elif dataset=='synthetic':
+            elif dataset=='synthetic' and z_dim==4:
                 eta_x0 = 1e-3
-                eta_x_decay = 1e-5
+                eta_x_decay = 1e-4
                 eta_y0 = 1e-4
-                eta_x_decay = 1e-5
+                eta_x_decay = 1e-4
                 eta_q0 = 1e-4
-                eta_q_decay = 1e-5
+                eta_q_decay = 1e-4
+            elif dataset=='synthetic':
+                eta_x0 = 1e-4
+                eta_x_decay = 1e-4
+                eta_y0 = 1e-4/500
+                eta_x_decay = 1e-4
+                eta_q0 = 1e-4/500
+                eta_q_decay = 1e-4
             elif dataset=='mediamill':
                 eta_x0 = 1e-2
                 eta_x_decay = 1e-5
