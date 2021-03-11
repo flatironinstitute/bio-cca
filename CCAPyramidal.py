@@ -1,3 +1,7 @@
+# Title: CCAPyramidal.py
+# Author: Xinyuan Zhao
+# References: C. Pehlevan, X. Zhao, A.M. Sengupta, D.B. Chklovskii "Neurons as Canonical Correlation Analyzers" (2020)
+
 import numpy as np
 import scipy.linalg
 
