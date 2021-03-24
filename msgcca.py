@@ -5,8 +5,8 @@
 
 ##############################
 # Imports
-import numpy as np
 from scipy.stats import ortho_group
+import numpy as np
 
 ##############################
 
