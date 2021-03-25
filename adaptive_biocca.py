@@ -54,15 +54,11 @@ class adaptive_bio_cca:
             if dataset=='synthetic':
                 eta0 = 1e-3
                 eta_decay = 1e-4
-                tau = 0.01
+                tau = 0.1
             elif dataset=='mediamill':
                 eta0 = 1e-2
                 eta_decay = 1e-3
                 tau = 0.5
-            elif dataset=='adaptive':
-                eta0 = 1e-4
-                eta_decay = 0
-                tau = 0.01
             else:
                 print('The optimal learning rates for this dataset are not stored')
                 
@@ -73,7 +69,7 @@ class adaptive_bio_cca:
         
         if eta is None:
             def eta(t):
-                return 1e-4
+                return 1e-3
         
         self.t = 0
         self.z_dim = z_dim

@@ -132,6 +132,27 @@ def constraint_error(Vx, Vy, Cxx, Cyy):
     
     return const_err
 
+def whitening_error(Vx, Vy, Cxx, Cxy, Cyy, optimal_eigs):
+    """
+    Parameters:
+    ====================
+    Vx, Vy    -- The data matrix of sources
+    optimal_eigs  -- Covariance matrices
+    
+    Output:
+    ====================
+    whitening_err -- Whitening error
+    """
+    
+    z_dim = Vx.shape[1]
+    
+    Czz = Vx.T@Cxx@Vx + Vx.T@Cxy@Vy + Vy.T@Cxy.T@Vx+Vy.T@Cyy@Vy
+    Czz_eigs = np.sort(np.linalg.eig(Czz)[0])
+
+    whitening_err = np.linalg.norm(Czz_eigs-optimal_eigs)**2/z_dim
+    
+    return whitening_err
+
 
 def add_fill_lines(axis, t, err, plot_kwargs=None, ci_kwargs=None):
     """
