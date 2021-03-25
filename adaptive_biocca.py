@@ -57,7 +57,7 @@ class adaptive_bio_cca:
                 tau = 0.1
             elif dataset=='mediamill':
                 eta0 = 1e-2
-                eta_decay = 1e-3
+                eta_decay = 1e-4
                 tau = 0.5
             else:
                 print('The optimal learning rates for this dataset are not stored')
@@ -78,7 +78,7 @@ class adaptive_bio_cca:
         self.P = P
         self.Wx = Wx
         self.Wy = Wy
-        self.alpha = 1
+        self.alpha = alpha
         self.eta = eta
         self.tau = tau
 
